@@ -36,9 +36,8 @@ bool radio_init() {
 
   bool success = radio.std_init(&spi);
   if (success) {
-    // T-Beam 1W has external PA requiring longer ramp time (>800us recommended)
-    // RADIOLIB_SX126X_PA_RAMP_800U = 0x05
-    radio.setTxParams(LORA_TX_POWER, RADIOLIB_SX126X_PA_RAMP_800U);
+    // Also enforce the board-specific ramp after the full initialization.
+    success = radio.setPaRampTime(RADIOLIB_SX126X_PA_RAMP_1700U) == RADIOLIB_ERR_NONE;
   }
   return success;
 }

@@ -7,6 +7,7 @@
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #include "TBeam1WBoard.h"
+#include "TBeam1WRadio.h"
 
 #ifdef DISPLAY_CLASS
   #include <helpers/ui/SH1106Display.h>
