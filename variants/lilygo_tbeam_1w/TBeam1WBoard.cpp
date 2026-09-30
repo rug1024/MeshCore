@@ -15,18 +15,44 @@ void TBeam1WBoard::begin() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
-  // Initialize fan control (on by default - 1W PA can overheat)
+  // Run the fan during TX and for five seconds afterwards.
+  digitalWrite(FAN_CTRL_PIN, LOW);
   pinMode(FAN_CTRL_PIN, OUTPUT);
-  digitalWrite(FAN_CTRL_PIN, HIGH);
+  fan_transmitting = false;
+  fan_cooldown = false;
 }
 
 void TBeam1WBoard::onBeforeTransmit() {
   // RF switching handled by RadioLib via SX126X_DIO2_AS_RF_SWITCH and setRfSwitchPins()
+  fan_transmitting = true;
+  fan_cooldown = false;
+  setFanEnabled(true);
   digitalWrite(LED_PIN, HIGH);  // TX LED on
 }
 
 void TBeam1WBoard::onAfterTransmit() {
   digitalWrite(LED_PIN, LOW);   // TX LED off
+  fan_transmitting = false;
+  fan_tx_end_ms = millis();
+  fan_cooldown = true;
+}
+
+void TBeam1WBoard::updateFan() {
+  if (!fan_transmitting && fan_cooldown &&
+      static_cast<uint32_t>(millis() - fan_tx_end_ms) >= FAN_RUN_ON_MS) {
+    setFanEnabled(false);
+    fan_cooldown = false;
+  }
+}
+
+void TBeam1WBoard::sleep(uint32_t secs) {
+  updateFan();
+  // Keep servicing the cooldown instead of entering a 30-second light sleep.
+  if (fan_transmitting || fan_cooldown) {
+    delay(1);
+    return;
+  }
+  ESP32Board::sleep(secs);
 }
 
 uint16_t TBeam1WBoard::getBattMilliVolts() {

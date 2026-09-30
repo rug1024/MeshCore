@@ -123,6 +123,9 @@ void setup() {
 }
 
 void loop() {
+#ifdef TBEAM_1W
+  board.updateFan();
+#endif
   // Handle Serial CLI
   int len = strlen(command);
   while (Serial.available() && len < sizeof(command)-1) {

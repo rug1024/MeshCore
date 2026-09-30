@@ -1,0 +1,34 @@
+name: DMC T-Beam 1W Fan Fix
+on:
+  push:
+    branches: [fix/tbeam-1w-fan]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test fan timing and sleep handling
+        run: |
+          g++ -std=c++17 -Wall -Wextra -I tests/tbeam_fan/mocks -DSX126X_RXEN=21 tests/tbeam_fan/test_fan.cpp -o /tmp/test-tbeam-fan
+          /tmp/test-tbeam-fan
+      - name: Setup build environment
+        uses: ./.github/actions/setup-build-environment
+      - name: Build DMC repeater for T-Beam 1W
+        env:
+          FIRMWARE_VERSION: v1.17.1-fanfix
+        run: bash build.sh build-firmware LilyGo_TBeam_1W_repeater
+      - name: Verify firmware outputs
+        run: |
+          test -s .pio/build/LilyGo_TBeam_1W_repeater/firmware.bin
+          test -s .pio/build/LilyGo_TBeam_1W_repeater/firmware-merged.bin
+          cd out
+          sha256sum *.bin > SHA256SUMS.txt
+      - name: Upload flashable firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: DMC-Repeater-v1.17.1-TBeam-1W-FanFix
+          path: out/
+          if-no-files-found: error

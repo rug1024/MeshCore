@@ -30,9 +30,15 @@
 class TBeam1WBoard : public ESP32Board {
 private:
   bool radio_powered = false;
+  bool fan_transmitting = false;
+  bool fan_cooldown = false;
+  uint32_t fan_tx_end_ms = 0;
+  static constexpr uint32_t FAN_RUN_ON_MS = 5000;
 
 public:
   void begin();
+  void updateFan();
+  void sleep(uint32_t secs) override;
   void onBeforeTransmit() override;
   void onAfterTransmit() override;
   uint16_t getBattMilliVolts() override;
