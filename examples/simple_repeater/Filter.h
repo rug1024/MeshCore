@@ -104,7 +104,7 @@ public:
   };
 
   Filter(ClientACL &acl, mesh::RTCClock &rtc) : _acl(&acl), _rtc(&rtc) {}
-  void resetPrefs(void) { _prefs = FilterPrefs(); }
+  void resetPrefs(void);
   void resetStats(void) { _cnt = Counters(); }
   bool allowPacketForward(const mesh::Packet *packet);
   bool hasPriority(const mesh::Packet *packet);

@@ -1,4 +1,26 @@
 #include "Filter.h"
+#ifdef DMC_RUHR_DEFAULTS
+#include <helpers/RegionMap.h>
+#include "RuhrDefaults.h"
+#endif
+
+void Filter::resetPrefs() {
+  _prefs = FilterPrefs();
+#ifdef DMC_RUHR_DEFAULTS
+  static_assert(sizeof(RuhrDefaults::blocked_channels) /
+                sizeof(RuhrDefaults::blocked_channels[0]) <= FILTER_CHANNEL_COUNT,
+                "Factory channel blocklist exceeds filter capacity");
+  _prefs.filter_enabled = true;
+  _prefs.minimal_hash_bytes = 1;
+  for (const char* name : RuhrDefaults::blocked_channels) {
+    addChannel(name);
+  }
+#endif
+  for (uint8_t i = 0; i < PAYLOAD_TYPE_COUNT; ++i) {
+    _limiters[i].init(_prefs.payload_prefs[i].rate_limit, _prefs.payload_prefs[i].rate_secs);
+  }
+}
+
 
 bool Filter::allowPacketForward(const mesh::Packet* packet) {
   if (!_prefs.filter_enabled) return true;
@@ -427,7 +449,13 @@ bool Filter::isValidUTF8(const uint8_t* data, uint8_t len) {
 }
 
 bool Filter::load(FILESYSTEM* fs) {
-  if (fs == nullptr || !fs->exists(FILTER_PREFS_FILE)) return true;
+  if (fs == nullptr || !fs->exists(FILTER_PREFS_FILE)) {
+    resetPrefs();
+#ifdef DMC_RUHR_DEFAULTS
+    if (fs != nullptr) return save(fs);
+#endif
+    return true;
+  }
 
 #if defined(RP2040_PLATFORM)
   File file = fs->open(FILTER_PREFS_FILE, "r");

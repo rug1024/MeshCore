@@ -18,11 +18,36 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -I tests/tbeam_fan/mocks tests/tbeam_fan/test_ramp.cpp -o /tmp/test-tbeam-ramp
           /tmp/test-tbeam-ramp
+      - name: Test Ruhrgebiet factory profile
+        run: |
+          g++ -std=c++17 -Wall -Wextra -I tests/tbeam_fan/mocks tests/tbeam_fan/test_defaults.cpp -o /tmp/test-tbeam-defaults
+          /tmp/test-tbeam-defaults
       - name: Setup build environment
         uses: ./.github/actions/setup-build-environment
+      - name: Verify effective repeater build flags
+        run: |
+          pio project config --json-output > /tmp/pio-config.json
+          python3 - <<'PY'
+          import json, shlex
+          config = dict(json.load(open('/tmp/pio-config.json')))
+          flags = dict(config['env:LilyGo_TBeam_1W_repeater'])['build_flags']
+          definitions = {}
+          for flag in flags:
+              tokens = shlex.split(flag)
+              option = ''.join(tokens)
+              if option.startswith('-D'):
+                  name, _, value = option[2:].partition('=')
+                  definitions[name] = value or '1'
+              elif option.startswith('-U'):
+                  definitions.pop(option[2:], None)
+          assert definitions['DMC_RUHR_DEFAULTS'] == '1'
+          assert definitions['LORA_CR'] == '8'
+          assert definitions['ENABLE_ADVERT_ON_BOOT'] == '0'
+          assert definitions['SX126X_RX_BOOSTED_GAIN'] == '1'
+          PY
       - name: Build DMC repeater for T-Beam 1W
         env:
-          FIRMWARE_VERSION: v1.17.1-fanfix-ramp
+          FIRMWARE_VERSION: v1.17.1-ruhr
         run: bash build.sh build-firmware LilyGo_TBeam_1W_repeater
       - name: Verify firmware outputs
         run: |
@@ -33,6 +58,6 @@ jobs:
       - name: Upload flashable firmware
         uses: actions/upload-artifact@v7
         with:
-          name: DMC-Repeater-v1.17.1-TBeam-1W-FanFix-Ramp1700us
+          name: DMC-Repeater-v1.17.1-TBeam-1W-Ruhrgebiet
           path: out/
           if-no-files-found: error

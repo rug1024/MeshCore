@@ -1,5 +1,8 @@
 #include "MyMesh.h"
 #include <algorithm>
+#ifdef DMC_RUHR_DEFAULTS
+#include "RuhrDefaults.h"
+#endif
 
 /* ------------------------------ Config -------------------------------- */
 
@@ -936,6 +939,9 @@ MyMesh::MyMesh(mesh::MainBoard &board, mesh::Radio &radio, mesh::MillisecondCloc
 #endif
   _prefs.radio_fem_rxgain = 1;
   _prefs.radio_fem_txgain = 0;
+#ifdef DMC_RUHR_DEFAULTS
+  RuhrDefaults::applyNodePrefs(_prefs);
+#endif
 
   pending_discover_tag = 0;
   pending_discover_until = 0;
@@ -950,7 +956,18 @@ void MyMesh::begin(FILESYSTEM *fs) {
   _cli.loadPrefs(_fs);
   acl.load(_fs, self_id);
   // TODO: key_store.begin();
+#ifdef DMC_RUHR_DEFAULTS
+  // Seed only a missing region file; an existing (even empty) map is user-owned.
+  if (!_fs->exists("/regions2")) {
+    if (RuhrDefaults::initializeRegions(region_map)) {
+      region_map.save(_fs);
+    }
+  } else {
+    region_map.load(_fs);
+  }
+#else
   region_map.load(_fs);
+#endif
   _filter.load(_fs);
 
   // establish default-scope
